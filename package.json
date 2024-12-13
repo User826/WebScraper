@@ -22,6 +22,7 @@
     "@angular/router": "^19.0.0",
     "@angular/ssr": "^19.0.4",
     "body": "^5.1.0",
+    "bootstrap": "^5.3.3",
     "express": "^4.18.2",
     "parser": "^0.1.4",
     "puppeteer": "^23.10.4",

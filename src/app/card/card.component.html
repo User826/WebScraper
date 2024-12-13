@@ -1,1 +1,12 @@
-<p>card works!</p>
+<div *ngFor="let result of searchResults">
+  <div class="card">
+    <h3>{{ result.title }}</h3>
+    <img [src]="result.imageUrl" alt="Image of {{ result.title }}">
+    <p>Lowest Amazon Price: {{ result.price }}</p>
+    <p>Lowest eBay Price: {{ result.lowestEbayPrice }}</p>
+    <p>Lowest Guitar Center Price: {{ result.lowestGuitarPrice }}</p>
+    <p>Lowest AliExpress Price: {{ result.lowestAliExpressPrice }}</p>
+    <p>Best Price: {{ result.bestPrice }}</p>
+    <a [href]="result.bestPriceUrl" class="btn btn-primary">Best Price Link</a>
+  </div>
+</div>

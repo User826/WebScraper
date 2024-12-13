@@ -128,12 +128,12 @@ app.post('/scrape', async (req, res) => {
     const guitarCenterUrl = `https://www.guitarcenter.com/search?typeAheadSuggestion=true&fromRecentHistory=false&Ntt=ax-edge`;
     await page.goto(guitarCenterUrl, { waitUntil: 'domcontentloaded' });
 
-    page.on('console', async (msg) => {
-      const msgArgs = msg.args();
-      for (let i = 0; i < msgArgs.length; ++i) {
-        console.log(await msgArgs[i].jsonValue());
-      }
-    });
+    // page.on('console', async (msg) => {
+    //   const msgArgs = msg.args();
+    //   for (let i = 0; i < msgArgs.length; ++i) {
+    //     console.log(await msgArgs[i].jsonValue());
+    //   }
+    // });
     const guitarPrices = await page.evaluate(() => {
 
       const listings = Array.from(document.querySelectorAll('.product-item'));
@@ -239,14 +239,6 @@ app.post('/scrape', async (req, res) => {
 
   const finalAliExpressPrice = lowestAliExpressPrice?.price || 0;
   const finalAliExpressUrl = lowestAliExpressPrice?.url ?? 'No URL available';
-
-  console.log('Lowest AliExpress Price:', finalAliExpressPrice);
-  console.log('URL:', finalAliExpressUrl);
-
-
-  console.log('Lowest AliExpress Price:', finalAliExpressPrice);
-  console.log('URL:', finalAliExpressUrl);
-
 
   await browser.close();
 
