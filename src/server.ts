@@ -69,8 +69,21 @@ app.post('/scrape', async (req, res) => {
       });
     });
 
+
+      const validAmazonProducts = amazonProducts.filter(product => product !== null);
+      const amazonPrices = validAmazonProducts.map(product => {
+
+        const priceText = product?.price.replace(/[^\d.-]/g, '');
+        return parseFloat(priceText ? priceText: '');
+      }).filter(price => !isNaN(price));
+
+      const lowestAmazonPrice = amazonPrices.length > 0
+        ? Math.min(...amazonPrices).toString()
+        : 'No price available';
+
     return res.json({
-      results: amazonProducts
+      results: amazonProducts,
+      lowestAmazonPrice: lowestAmazonPrice
     })
 
   } catch (error) {
