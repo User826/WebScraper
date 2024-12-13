@@ -1,0 +1,18 @@
+{
+  "websites": [
+    "https://www.amazon.com",
+    "https://www.ebay.com",
+    "https://www.guitarcenter.com",
+    "https://www.aliexpress.com"
+  ],
+  "products": [
+    {
+      "name": "Black",
+      "sku": "761294513118"
+    },
+    {
+      "name": "White",
+      "sku": "761294512418"
+    }
+  ]
+}
