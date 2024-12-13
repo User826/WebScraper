@@ -80,12 +80,6 @@ app.post('/scrape', async (req, res) => {
     const ebayUrl = `https://www.ebay.com/sch/i.html?_from=R40&_trksid=p4432023.m570.l1313&_nkw=${searchValue}&_sacat=0`;
     await page.goto(ebayUrl, { waitUntil: 'domcontentloaded' });
 
-    page.on('console', async (msg) => {
-      const msgArgs = msg.args();
-      for (let i = 0; i < msgArgs.length; ++i) {
-        console.log(await msgArgs[i].jsonValue());
-      }
-    });
     const ebayPrices = await page.evaluate(() => {
 
       const items = Array.from(document.querySelectorAll('.s-item__wrapper.clearfix'));
@@ -131,11 +125,83 @@ app.post('/scrape', async (req, res) => {
       }, null)
     : null;
 
+  const guitarCenterUrl = `https://www.guitarcenter.com/search?typeAheadSuggestion=true&fromRecentHistory=false&Ntt=ax-edge`;
+  await page.goto(guitarCenterUrl, { waitUntil: 'domcontentloaded' });
+
+  page.on('console', async (msg) => {
+    const msgArgs = msg.args();
+    for (let i = 0; i < msgArgs.length; ++i) {
+      console.log(await msgArgs[i].jsonValue());
+    }
+  });
+  const guitarPrices = await page.evaluate(() => {
+
+    const listings = Array.from(document.querySelectorAll('.product-item'));
+
+    const itemsWithoutCondition: { title: string; price: string; url: string | null | undefined }[] = [];
+    const itemsWithCondition: { title: string; price: string; condition: string; url: string | null | undefined  }[] = [];
+
+    listings.forEach(listing => {
+      const title = listing.querySelector('h2')?.innerText.trim(); // Safe access with optional chaining
+      const price = listing.querySelector('.sale-price')?.textContent?.trim();
+      const condition = listing.querySelector('p.font-normal.mb-2.text-xs')?.textContent?.trim();
+      const url = listing.querySelector('.product-name')?.getAttribute('href')
+
+      if (!title || !price || title.includes("With")) {
+        return;
+      }
+
+      if (!condition) {
+        itemsWithoutCondition.push({ title, price, url });
+      } else {
+        itemsWithCondition.push({ title, price, condition, url });
+      }
+    });
+
+    return { itemsWithoutCondition, itemsWithCondition };
+  });
+
+  const { itemsWithoutCondition, itemsWithCondition } = guitarPrices;
+
+  const calculateLowestPriceWithUrl = (items: any[]) => {
+    return items.reduce((lowest, item) => {
+      if (item) {
+        const priceText = item.price.replace(/[^\d.-]/g, '');
+        const price = parseFloat(priceText);
+
+        if (isNaN(price)) return lowest;
+
+        if (!lowest || price < lowest.price) {
+          return { price, url: item.url };
+        }
+      }
+      return lowest;
+    }, null);
+  };
+
+  const lowestGuitarPriceWithoutCondition = calculateLowestPriceWithUrl(itemsWithoutCondition);
+  const lowestGuitarPriceWithCondition = calculateLowestPriceWithUrl(itemsWithCondition);
+
+  const finalPriceWithoutCondition = lowestGuitarPriceWithoutCondition
+    ? { price: lowestGuitarPriceWithoutCondition.price.toString(), url: lowestGuitarPriceWithoutCondition.url }
+    : { price: 'No price available', url: null };
+
+  const finalPriceWithCondition = lowestGuitarPriceWithCondition
+    ? { price: lowestGuitarPriceWithCondition.price.toString(), url: lowestGuitarPriceWithCondition.url }
+    : { price: 'No price available', url: null };
+
     return res.json({
       results: amazonProducts,
       lowestAmazonPrice: lowestAmazonPrice,
       lowestBrandNewEbayPrice: lowestBrandNewEbayPrice,
-      lowestNotNewEbayPrice: lowestNotNewEbayPrice
+      lowestBrandNewEbayURL: lowestBrandNewEbayPrice?.url,
+      lowestNotNewEbayPrice: lowestNotNewEbayPrice,
+      lowestNotNewEbayURL: lowestNotNewEbayPrice?.url,
+      lowestGuitarPrice: finalPriceWithoutCondition.price,
+      lowestGuitarURL: "https://www.guitarcenter.com" + finalPriceWithoutCondition.url,
+      lowestNotNewGuitarPrice: lowestGuitarPriceWithCondition,
+      lowestNotNewGuitarUrl: "https://www.guitarcenter.com" + finalPriceWithCondition.url,
+
     })
 
   } catch (error) {
