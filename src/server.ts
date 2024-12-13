@@ -196,66 +196,48 @@ app.post('/scrape', async (req, res) => {
     await page.goto(perfectUrl, { waitUntil: 'domcontentloaded' });
 
     const aliExpressPrices = await page.evaluate(() => {
-      // Select all product grid items
-      const listings = Array.from(document.querySelectorAll('.multi--modalContext--1Hxqhwi'));
-      // console.log(`Listings length is ${listings.length}`)
 
-      // Map through listings to extract relevant data
+      const listings = Array.from(document.querySelectorAll('.multi--modalContext--1Hxqhwi'));
+
       const listingsArray = listings
         .map(listing => {
-          const title = listing.querySelector('h3') // Safe access with optional chaining
-          // const titleText = title?.querySelector('span')?.textContent?.trim();
+          const title = listing.querySelector('h3')
           const titleText = title?.textContent
           const url = listing.querySelector('.search-card-item')?.getAttribute('href')
           const priceElements = Array.from(listing.querySelectorAll('.multi--price-sale--U-S0jtj span'));
           const priceText = priceElements.map(el => el.textContent).join(''); // Join the text content of each span to form the full price
           priceText.trim()
 
-          // console.log(`Title text is ${titleText}`)
-          // console.log(`Price is ${priceText}`)
-          // const condition = listing.querySelector('p.font-normal.mb-2.text-xs')?.textContent?.trim();
-
-          // If there's no title or price, return null instead of an empty object
-          // if (!title || !price || titleText?.includes("With")) {
-          //   return null; // Filter out invalid listings
-          // }
           if (!titleText?.includes("Roland Synthesizer")){
             return null
           }
 
-          // Return data only if there is no condition
-          // if (!condition) {
-          //   return { title, price };
-          // }
-
-          return {titleText, priceText, url}; // Filter out items with a condition
+          return {titleText, priceText, url};
         })
-        .filter(item => item !== null); // Remove null items from the array
+        .filter(item => item !== null);
 
-      return listingsArray; // Return the filtered array
+      return listingsArray;
     });
-
-    // console.log(bPrices)
 
     const lowestAliExpressPrice = aliExpressPrices
     .map(item => {
       if (item) {
-        const priceTexts = item.priceText.replace(/[^\d.-]/g, ''); // Clean up price text to extract numeric value
+        const priceTexts = item.priceText.replace(/[^\d.-]/g, '');
         const price = parseFloat(priceTexts);
-        return { price: isNaN(price) ? null : price, url: item.url }; // Return price and URL
+        return { price: isNaN(price) ? null : price, url: item.url };
       }
-      return null; // Return null if the item is null
+      return null;
     })
     .reduce<{ price: number | null; url: string | null | undefined } | null>((lowest, current) => {
       if (current && current.price !== null) {
         if (lowest === null || (lowest.price !== null && current.price < lowest.price)) {
-          return current; // Update to the current lowest price and URL
+          return current;
         }
       }
-      return lowest; // Keep the existing lowest
+      return lowest;
     }, null);
 
-  const finalAliExpressPrice = lowestAliExpressPrice?.price ?? 'No price available';
+  const finalAliExpressPrice = lowestAliExpressPrice?.price || 0;
   const finalAliExpressUrl = lowestAliExpressPrice?.url ?? 'No URL available';
 
   console.log('Lowest AliExpress Price:', finalAliExpressPrice);
@@ -267,6 +249,21 @@ app.post('/scrape', async (req, res) => {
 
 
   await browser.close();
+
+
+  const priceList = [
+    { price: parseFloat(lowestAmazonPrice.replace(/[^\d.-]/g, '')) || NaN, url: amazonProducts[0]?.fullUrl },
+    { price: lowestBrandNewEbayPrice?.price || NaN, url: lowestBrandNewEbayPrice?.url },
+    { price: parseFloat(finalPriceWithoutCondition.price.replace(/[^\d.-]/g, '')) || NaN, url: "https://www.guitarcenter.com" + finalPriceWithoutCondition.url },
+    { price: (finalAliExpressPrice) || NaN, url: finalAliExpressUrl }
+  ];
+
+
+  const validPrices = priceList.filter(item => !isNaN(item.price));
+
+  const lowestPrice = Math.min(...validPrices.map(item => item.price));
+  const lowestPriceItem = validPrices.find(item => item.price === lowestPrice);
+  const lowestPriceUrl = lowestPriceItem ? lowestPriceItem.url : null;
 
     return res.json({
       results: amazonProducts,
@@ -280,7 +277,10 @@ app.post('/scrape', async (req, res) => {
       lowestNotNewGuitarPrice: lowestGuitarPriceWithCondition,
       lowestNotNewGuitarUrl: "https://www.guitarcenter.com" + finalPriceWithCondition.url,
       lowestAliExpressPrice: finalAliExpressPrice,
-      lowestAliExpressURL: finalAliExpressUrl
+      lowestAliExpressURL: finalAliExpressUrl,
+      bestPrice: lowestPrice,
+      bestPriceURL: lowestPriceUrl
+
 
     })
 
