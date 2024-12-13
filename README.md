@@ -2,6 +2,15 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.4.
 
+## Cloning the Repository
+
+To clone this repository to your local machine, use the following commands:
+
+```bash
+git clone https://github.com/User826/WebScraper.git
+cd WebScraper
+```
+
 ## Development server
 
 To start a local development server, run:
