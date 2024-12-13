@@ -40,15 +40,10 @@ app.post('/scrape', async (req, res) => {
 
     const page = await browser.newPage();
 
+    // Amazon Scraping
     const amazonUrl = `https://www.amazon.com/s?k=${searchValue}`;
     await page.goto(amazonUrl, { waitUntil: 'domcontentloaded' });
 
-    page.on('console', async (msg) => {
-      const msgArgs = msg.args();
-      for (let i = 0; i < msgArgs.length; ++i) {
-        console.log(await msgArgs[i].jsonValue());
-      }
-    });
     const amazonProducts = await page.evaluate(() => {
       const titleElements = Array.from(document.querySelectorAll('div[data-cy="title-recipe"] h2 span'));
       const imageElements = Array.from(document.querySelectorAll('div.a-section.aok-relative.s-image-square-aspect img'));
@@ -70,20 +65,77 @@ app.post('/scrape', async (req, res) => {
     });
 
 
-      const validAmazonProducts = amazonProducts.filter(product => product !== null);
-      const amazonPrices = validAmazonProducts.map(product => {
+    const validAmazonProducts = amazonProducts.filter(product => product !== null);
+    const amazonPrices = validAmazonProducts.map(product => {
 
-        const priceText = product?.price.replace(/[^\d.-]/g, '');
-        return parseFloat(priceText ? priceText: '');
-      }).filter(price => !isNaN(price));
+      const priceText = product?.price.replace(/[^\d.-]/g, '');
+      return parseFloat(priceText ? priceText: '');
+    }).filter(price => !isNaN(price));
 
-      const lowestAmazonPrice = amazonPrices.length > 0
-        ? Math.min(...amazonPrices).toString()
-        : 'No price available';
+    const lowestAmazonPrice = amazonPrices.length > 0
+      ? Math.min(...amazonPrices).toString()
+      : 'No price available';
+
+    // Ebay Scraping
+    const ebayUrl = `https://www.ebay.com/sch/i.html?_from=R40&_trksid=p4432023.m570.l1313&_nkw=${searchValue}&_sacat=0`;
+    await page.goto(ebayUrl, { waitUntil: 'domcontentloaded' });
+
+    page.on('console', async (msg) => {
+      const msgArgs = msg.args();
+      for (let i = 0; i < msgArgs.length; ++i) {
+        console.log(await msgArgs[i].jsonValue());
+      }
+    });
+    const ebayPrices = await page.evaluate(() => {
+
+      const items = Array.from(document.querySelectorAll('.s-item__wrapper.clearfix'));
+
+      const pricesWithUrls = items.map(item => {
+        const priceElement = item.querySelector('.s-item__price');
+        const urlElement = item.querySelector('.s-item__link'); // Use link element for URL
+        const brandNewElement = item.querySelector('.SECONDARY_INFO');
+
+        // console.log(`Price element is ${priceElement}`)
+        // console.log(`urlElement is ${urlElement}`)
+        // console.log(`brandNewElement is ${brandNewElement}`)
+        if (priceElement && urlElement && priceElement.textContent !=='20') {
+          const priceText = priceElement.textContent?.trim();
+          const price = priceText ? parseFloat(priceText.replace(/[^\d.-]/g, '')) : null;
+          const url = urlElement.getAttribute('href');
+          const isBrandNew = brandNewElement?.textContent?.includes('Brand New');
+
+          return price !== null ? { price, url, isBrandNew } : null;
+        }
+        return null;
+      });
+
+      const validItems = pricesWithUrls.filter(item => item !== null && item.price !== 0 && item.price !== 20);
+
+      const brandNewPrices = validItems.filter(item => item?.isBrandNew);
+      const notNewPrices = validItems.filter(item => !item?.isBrandNew);
+
+      return { brandNewPrices, notNewPrices };
+    });
+
+    const lowestBrandNewEbayPrice = ebayPrices.brandNewPrices.length > 0
+    ? ebayPrices.brandNewPrices.reduce((lowest, item) => {
+        if (!item || !lowest) return item || lowest;
+        return item.price < lowest.price ? item : lowest;
+      }, null)
+    : null;
+
+  const lowestNotNewEbayPrice = ebayPrices.notNewPrices.length > 0
+    ? ebayPrices.notNewPrices.reduce((lowest, item) => {
+        if (!item || !lowest) return item || lowest;
+        return item.price < lowest.price ? item : lowest;
+      }, null)
+    : null;
 
     return res.json({
       results: amazonProducts,
-      lowestAmazonPrice: lowestAmazonPrice
+      lowestAmazonPrice: lowestAmazonPrice,
+      lowestBrandNewEbayPrice: lowestBrandNewEbayPrice,
+      lowestNotNewEbayPrice: lowestNotNewEbayPrice
     })
 
   } catch (error) {
