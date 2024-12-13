@@ -21,6 +21,25 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## API
+
+This project includes a backend endpoint for scraping data.
+
+- **Endpoint**: `/scrape`
+- **Method**: `POST`
+- **Description**: The `/scrape` endpoint accepts a `POST` request with the Roland Keytar SKU.
+  
+To interact with the API:
+
+1. Make a `POST` request to `/scrape` with the necessary data.
+2. The server will process the request and return the scraped data.
+
+Example:
+
+```bash
+curl -X POST http://localhost:4200/scrape -d '{"searchValue": "761294512418"}' -H "Content-Type: application/json"
+```
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
@@ -63,6 +82,9 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+```
+
