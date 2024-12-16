@@ -45,7 +45,7 @@ app.post('/scrape', async (req, res) => {
     await page.goto(amazonUrl, { waitUntil: 'domcontentloaded' });
 
     const amazonProducts = await page.evaluate(() => {
-      const titleElements = Array.from(document.querySelectorAll('div[data-cy="title-recipe"] h2 span'));
+      const titleElements = Array.from(document.querySelectorAll('.a-section.a-spacing-none.a-spacing-top-small.s-title-instructions-style'))
       const imageElements = Array.from(document.querySelectorAll('div.a-section.aok-relative.s-image-square-aspect img'));
       const priceElements = Array.from(document.querySelectorAll('.a-price .a-offscreen'));
       const buyLink = document.querySelector('a.a-link-normal.s-line-clamp-4.s-link-style.a-text-normal')?.getAttribute('href');
